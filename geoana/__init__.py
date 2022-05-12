@@ -1,5 +1,4 @@
 from . import utils
-from . import earthquake
 from . import em
 
 __version__ = '0.2.0'

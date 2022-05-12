@@ -53,7 +53,6 @@ metadata = dict(
     install_requires = [
         'numpy>=1.8',
         'scipy>=0.13',
-        'matplotlib',
         'utm',
         'empymod'
     ],
