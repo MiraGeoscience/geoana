@@ -2,9 +2,8 @@ import numpy as np
 from geoana.em.base import BaseMagneticDipole
 from geoana.em.fdem.base import BaseFDEM, sigma_hat
 from scipy.constants import mu_0, epsilon_0
-from empymod.utils import check_hankel
-from empymod.transform import get_dlf_points
 from geoana.kernels.tranverse_electric_reflections import rTE_forward
+import libdlf
 
 
 class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
@@ -33,7 +32,7 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
         is assigned with a (n_layer, n_frequency) np.ndarray.
     epsilon : (n_layer) np.ndarray or (n_layer, n_frequency) np.ndarray
         Dielectric permittivity for all layers (and at all frequencies). Only applicable when
-        *quasistatic* == ``True``. For non-dispersive permittivity or for an instance of
+        *quasistatic* == ``False``. For non-dispersive permittivity or for an instance of
         **MagneticDipoleLayeredHalfSpace** at a single frequency, *epsilon* is assigned with
         a (n_layer) np.ndarray. For dispersive permittivity and multiple frequencies,
         *epsilon* is assigned with a (n_layer, n_frequency) np.ndarray.
@@ -45,7 +44,6 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
         self.thickness = thickness
         super().__init__(frequency=frequency, **kwargs)
         self._check_is_valid_location()
-
 
     def _check_is_valid_location(self):
         if self.location[2] < 0.0:
@@ -96,20 +94,19 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
         # Ensure float or numpy array of float
         try:
             if value is None:
-                value = []
+                value = np.array([])
             else:
                 value = np.atleast_1d(value).astype(float)
         except:
             raise TypeError(f"thickness are not a valid type")
 
         # Enforce positivity and dimensions
-        if (value < 0.).any():
+        if len(value) > 0 and np.any(value < 0):
             raise ValueError("Thicknesses must be greater than 0")
         if value.ndim > 1:
             raise TypeError(f"Thicknesses must be ('*') array")
 
         self._thickness = value
-
 
     @property
     def sigma(self):
@@ -275,7 +272,7 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
 
     @property
     def sigma_hat(self):
-        _, sigma, epsilon, _ = self._get_valid_properties()
+        _, sigma, epsilon, _ = self._get_valid_properties_array()
         return sigma_hat(
             self.frequency[:, None], sigma, epsilon,
             quasistatic=self.quasistatic
@@ -403,16 +400,12 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
         dxyz = xyz - self.location
         offsets = np.linalg.norm(dxyz[:, :-1], axis=-1)
 
-        # Comput transform operations
-        # -1 gives lagged convolution in dlf
-        ht, htarg = check_hankel('dlf', {'dlf': 'key_101_2009', 'pts_per_dec': 0}, 1)
-        fhtfilt = htarg['dlf']
-        pts_per_dec = htarg['pts_per_dec']
+        # Compute transform operations
+        filt_base, filt_j0, filt_j1 = libdlf.hankel.key_101_2009()
+        lambd = filt_base/offsets[:, None]
 
         f = self.frequency
         n_frequency = len(f)
-
-        lambd, int_points = get_dlf_points(fhtfilt, offsets, pts_per_dec)
 
         thick = self.thickness
         n_layer = len(thick) + 1
@@ -466,9 +459,9 @@ class MagneticDipoleLayeredHalfSpace(BaseFDEM, BaseMagneticDipole):
             # C1z += 0.0
 
         # Do the hankel transform on each component
-        em_x = ((C0x*rTE)@fhtfilt.j0 + (C1x*rTE)@fhtfilt.j1)/offsets
-        em_y = ((C0y*rTE)@fhtfilt.j0 + (C1y*rTE)@fhtfilt.j1)/offsets
-        em_z = ((C0z*rTE)@fhtfilt.j0 + (C1z*rTE)@fhtfilt.j1)/offsets
+        em_x = ((C0x*rTE)@filt_j0 + (C1x*rTE)@filt_j1)/offsets
+        em_y = ((C0y*rTE)@filt_j0 + (C1y*rTE)@filt_j1)/offsets
+        em_z = ((C0z*rTE)@filt_j0 + (C1z*rTE)@filt_j1)/offsets
 
         if field == "total":
             # add in the primary field

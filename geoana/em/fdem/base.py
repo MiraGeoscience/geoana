@@ -20,12 +20,12 @@ def omega(frequency):
 
     Parameters
     ----------
-    frequency : float, (n) numpy.ndarray
+    frequency : float, numpy.ndarray
         frequency or frequencies (Hz)
 
     Returns
     -------
-    float, (n) numpy.ndarray
+    float, numpy.ndarray
         Angular frequency or frequencies in rad/s
 
     """
@@ -252,7 +252,7 @@ class BaseFDEM(BaseEM):
             self.frequency, self.sigma, epsilon=self.epsilon,
             quasistatic=self.quasistatic
         )
-        if (np.imag(sigma) == 0).all():
+        if np.all(np.imag(sigma) == 0):
             sigma = np.real(sigma)
         return sigma
 

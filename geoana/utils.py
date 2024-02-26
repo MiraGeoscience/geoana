@@ -12,9 +12,11 @@ commonly used within the code base.
 
   mkvc
   ndgrid
+  check_xyz_dim
 
 """
 import numpy as np
+
 
 def mkvc(x, n_dims=1):
     """Creates a vector with specified dimensionality.
@@ -68,9 +70,6 @@ def mkvc(x, n_dims=1):
     """
     if isinstance(x, np.matrix):
         x = np.array(x)
-
-    if hasattr(x, 'tovec'):
-        x = x.tovec()
 
     assert isinstance(x, np.ndarray), "Vector must be a numpy array"
 
@@ -151,3 +150,75 @@ def ndgrid(*args, **kwargs):
             return np.c_[X1, X2, X3]
         else:
             return XYZ[2], XYZ[1], XYZ[0]
+
+
+def check_xyz_dim(xyz, dim=3, dtype=float):
+    """ Checks if the arguments are compatible with the expected dimensionality and type
+
+    If xyz is a list or tuple of arrays, this will attempt to stack the arrays along the
+    last dimension, ensuring all arrays are of consistent shapes with each other.
+
+    Parameters
+    ----------
+    xyz : (dim,) tuple of numpy.ndarray, or (..., dim) numpy.ndarray
+        The array to check
+    dim : int, optional
+        The expected dimensionality
+    dtype : DataType, optional
+        The requested data type for the array
+
+    Returns
+    -------
+    xyz : (..., dim) numpy.ndarray of `dtype`
+        The validated array
+    """
+    if isinstance(xyz, tuple):
+        xyz = np.stack(xyz, axis=-1)
+    xyz = np.asarray(xyz, dtype=dtype)
+    if xyz.shape[-1] != dim:
+        raise ValueError(
+            f"Unexpected dimensionality of array, expected {dim}, saw {xyz.shape[-1]}"
+        )
+    return xyz
+
+
+def requires(modules):
+    """Decorate a function with soft dependencies.
+
+    This function was inspired by the `requires` function of pysal,
+    which is released under the 'BSD 3-Clause "New" or "Revised" License'.
+
+    https://github.com/pysal/pysal/blob/master/pysal/lib/common.py
+
+    Parameters
+    ----------
+    modules : dict
+        Dictionary containing soft dependencies, e.g.,
+        {'matplotlib': matplotlib}.
+
+    Returns
+    -------
+    decorated_function : function
+        Original function if all soft dependencies are met, otherwise
+        it returns an empty function which prints why it is not running.
+
+    """
+    # Check the required modules, add missing ones in the list `missing`.
+    missing = []
+    for key, item in modules.items():
+        if item is False:
+            missing.append(key)
+
+    def decorated_function(function):
+        """Wrap function."""
+        if not missing:
+            return function
+        else:
+
+            def passer(*args, **kwargs):
+                print(("Missing dependencies: {d}.".format(d=missing)))
+                print(("Not running `{}`.".format(function.__name__)))
+
+            return passer
+
+    return decorated_function

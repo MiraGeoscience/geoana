@@ -34,7 +34,6 @@ class BaseEM:
         self.epsilon = epsilon
         super().__init__(**kwargs)
 
-
     @property
     def sigma(self):
         """Electrical conductivity in S/m
@@ -102,10 +101,14 @@ class BaseEM:
         except:
             raise TypeError(f"epsilon must be a number, got {type(value)}")
 
-        if value <= 0.0:
-            raise ValueError("epsilon must be greater than 0")
+        if value < 0.0:
+            raise ValueError(
+                f"Invalid epsilon '{value}': "
+                "epsilon must be greater or equal than zero."
+            )
 
         self._epsilon = value
+
 
 class BaseDipole:
     """Base class for dipoles; namely the location and orientation.
@@ -126,7 +129,6 @@ class BaseDipole:
         self.location = location
         self.orientation = orientation
         super().__init__(**kwargs)
-
 
     @property
     def location(self):
@@ -363,9 +365,6 @@ class BaseElectricDipole(BaseDipole):
         except:
             raise TypeError(f"current must be a number, got {type(value)}")
 
-        if value <= 0.0:
-            raise ValueError("current must be greater than 0")
-
         self._current = value
 
 
@@ -412,9 +411,6 @@ class BaseMagneticDipole(BaseDipole):
             value = float(value)
         except:
             raise TypeError(f"moment must be a number, got {type(value)}")
-
-        if value <= 0.0:
-            raise ValueError("moment must be greater than 0")
 
         self._moment = value
 
@@ -474,7 +470,6 @@ class BaseLineCurrent:
 
         """
         return self.nodes.shape[0] - 1
-
 
     @property
     def current(self):

@@ -28,6 +28,16 @@ Details about Earthquakes
 
   geoana.earthquake.oksar
 
+Gravity
+===========
+
+Details about Gravity
+
+.. toctree::
+  :maxdepth: 2
+
+  geoana.gravity
+
 Utilities
 =========
 
@@ -36,7 +46,7 @@ functions for performing useful operations.
 .. toctree::
   :maxdepth: 2
 
+  geoana.shapes
   geoana.utils
   geoana.spatial
   geoana.plotting_utils
-

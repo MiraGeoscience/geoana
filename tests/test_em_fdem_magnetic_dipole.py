@@ -26,7 +26,7 @@ def H_from_MagneticDipoleWholeSpace(
 
     omega = lambda f: 2*np.pi*f
 
-    XYZ = discretize.utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = discretize.utils.as_array_n_by_dim(XYZ, 3)
     # Check
 
     dx = XYZ[:, 0]-srcLoc[0]
@@ -88,7 +88,7 @@ def E_from_MagneticDipoleWholeSpace(
 
     omega = lambda f: 2 * np.pi * f
 
-    XYZ = discretize.utils.asArray_N_x_Dim(XYZ, 3)
+    XYZ = discretize.utils.as_array_n_by_dim(XYZ, 3)
 
     dx = XYZ[:, 0]-srcLoc[0]
     dy = XYZ[:, 1]-srcLoc[1]
@@ -125,7 +125,7 @@ class TestFDEMdipole(unittest.TestCase):
 
     def test_defaults(self):
         TOL = 1e-15
-        frequency = 1.0
+        frequency = 1
         mdws = fdem.MagneticDipoleWholeSpace(frequency)
         assert(mdws.sigma == 1.)
         assert(mdws.mu == mu_0)
@@ -138,12 +138,17 @@ class TestFDEMdipole(unittest.TestCase):
         assert(mdws.quasistatic is False)
         assert np.linalg.norm(
             mdws.wavenumber - np.sqrt(
-                mu_0 * epsilon_0 * (2*np.pi)**2  - 1j * mu_0 * 1. * 2*np.pi
+                mu_0 * epsilon_0 * (2*np.pi)**2 - 1j * mu_0 * 1. * 2*np.pi
             )
         ) <= TOL
         assert np.linalg.norm(
             mdws.wavenumber**2 - (
-                mu_0 * epsilon_0 * (2*np.pi)**2  - 1j * mu_0 * 1. * 2*np.pi
+                mu_0 * epsilon_0 * (2*np.pi)**2 - 1j * mu_0 * 1. * 2*np.pi
+            )
+        ) <= TOL
+        assert np.linalg.norm(
+            mdws.skin_depth - (np.sqrt(
+                (mu_0 * epsilon_0 / 2) * (np.sqrt(1 + 1 ** 2 / (2*np.pi * epsilon_0) ** 2) - 1)) / (2*np.pi)
             )
         ) <= TOL
 
